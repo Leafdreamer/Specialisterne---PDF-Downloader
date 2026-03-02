@@ -4,6 +4,9 @@ import requests
 import csv
 import datetime
 
+# Luna's addition!
+import concurrent.futures
+
 #   ---
 #
 #   Hello user
@@ -32,12 +35,12 @@ rowsProcesedNr = 0      #   Total number of rows that has been processed to keep
 # ---Step 1: Converts the excel sheet into a python list[]
 def listHandling():
     global pdf_files
-    #max = 0     #   when testing with max nr of files
+    max = 0     #   when testing with max nr of files
     for index, row in inputFiles.iterrows():    #   For loop for each row of data in the .xslx file. I don't fully understand how this works, but it does ¯\_(ツ)_/¯ and the seemingly unused 'index' variable is important to declare because of iterrows() https://stackoverflow.com/questions/16476924/how-can-i-iterate-over-rows-in-a-pandas-dataframe
         pdf_files.append(["", row['BRnum'], row['Pdf_URL'], row['Report Html Address']])    #   Add the importat parts of the row as a new list to pdf_files[] 
-        #max += 1
-        #if max == 12:
-           #break
+        max += 1
+        if max == 25:
+           break
 
 
 # ---Step 2: Makes a folder to put the files
@@ -52,12 +55,20 @@ def createDir():
 
 
 # ---Step 3: Downloads the files into the folder and tracks progress
-def downloadAllPDFS():     
+# Feel free to edit the 'test' value in order to swap between the original code and the multi-threading
+def downloadAllPDFS(test = 1):     
     global pdf_files
     global downloadedNr
     global notDownloadedNr
-    for item in pdf_files:
-        downloadOnePdf(item, 1)     #   Splits the download functions as to not repeat code and so you can more easily test one row at a time
+    if test == 0: # Using original
+        for item in pdf_files:
+            downloadOnePdf(item, 1)     #   Splits the download functions as to not repeat code and so you can more easily test one row at a time
+    if test == 1: # Using multi-threading (fast)
+        with concurrent.futures.ThreadPoolExecutor(max_workers = 5) as executor:
+            [
+            executor.submit(downloadOnePdf, item, 1)
+            for item in pdf_files
+            ]
     print("\nDone with downloading.\nFiles succusfully downloaded: "+str(downloadedNr)+" | Files failed to be downloaded: "+str(notDownloadedNr))
 
 # -Download a file based on a specific row from the excel sheet
