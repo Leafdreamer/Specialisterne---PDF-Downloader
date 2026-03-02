@@ -1,3 +1,20 @@
+#   ---
+#
+#   Hello user
+#
+#   Here's how to change the script to use it with an excel sheet that isn't "GRI_2017_2020 (1).xlsx":
+#   
+#   Lines 28, 29, and 30 contain editable variables
+#   Editing these allows you to use a different excel sheet, 
+#   edit the amount of threads the program is allowed to use, and edit the maximum amount of downloads respectively
+#
+#   Remember to read the readme file before running the script!
+#
+#   Good luck! :)
+#   -Thomas (and Luna~)
+#  
+#   ---
+
 import os
 import pandas
 import requests
@@ -7,24 +24,12 @@ import datetime
 # Luna's addition!
 import concurrent.futures
 
-#   ---
-#
-#   Hello user
-#
-#   Here's how to change the script to use it with an excel sheet that isn't "GRI_2017_2020 (1).xlsx":
-#   
-#       -1 On line 24, where inputFiles is declared and change the str parameter in .read_excel() to the full name and file type of the new sheet.
-#       -2 In listHandling(), on line 37 where pdf_files[] is being appended and change the name of 'BRnum', 'Pdf_URL' and 'Report Html Address' to match the new names of the subesquent rows ('file name', 'link 1', 'link 2').
-#
-#   Remember to read the readme file before running the script!
-#
-#   Good luck! :)
-#   -Thomas
-#  
-#   ---
-
 
 inputFiles = pandas.read_excel("GRI_2017_2020 (1).xlsx")        #   Get the excel file
+maxThreads = 10         # Amount of workers allowed
+maxDownloads = 15     # Amount of downloads to be attempted before program stops (unlimited if set to None)
+
+
 pdf_files = []          #   The list where we make a new list for every file [["was_downloaded_status", "BRnum", "link1", "link2"],...]
 folderNr = 1            #   A int to make sure we can create a uniquely named folder
 downloadedNr = 0        #   Total number of succesfully downloaded files
@@ -35,13 +40,13 @@ rowsProcesedNr = 0      #   Total number of rows that has been processed to keep
 # ---Step 1: Converts the excel sheet into a python list[]
 def listHandling():
     global pdf_files
-    max = 0     #   when testing with max nr of files
+    global maxDownloads
+    dlAmount = 0     #   when testing with max nr of files
     for index, row in inputFiles.iterrows():    #   For loop for each row of data in the .xslx file. I don't fully understand how this works, but it does ¯\_(ツ)_/¯ and the seemingly unused 'index' variable is important to declare because of iterrows() https://stackoverflow.com/questions/16476924/how-can-i-iterate-over-rows-in-a-pandas-dataframe
         pdf_files.append(["", row['BRnum'], row['Pdf_URL'], row['Report Html Address']])    #   Add the importat parts of the row as a new list to pdf_files[] 
-        max += 1
-        if max == 25:
-           break
-
+        dlAmount += 1
+        if maxDownloads != None and dlAmount >= maxDownloads:
+            break
 
 # ---Step 2: Makes a folder to put the files
 def createDir():        
@@ -60,11 +65,12 @@ def downloadAllPDFS(test = 1):
     global pdf_files
     global downloadedNr
     global notDownloadedNr
+    global maxThreads
     if test == 0: # Using original
         for item in pdf_files:
             downloadOnePdf(item, 1)     #   Splits the download functions as to not repeat code and so you can more easily test one row at a time
     if test == 1: # Using multi-threading (fast)
-        with concurrent.futures.ThreadPoolExecutor(max_workers = 5) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers = maxThreads) as executor:
             [
             executor.submit(downloadOnePdf, item, 1)
             for item in pdf_files
